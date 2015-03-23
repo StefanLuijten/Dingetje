@@ -1,47 +1,47 @@
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
-public class CorpusReader 
-{
+public class CorpusReader {
+
     final static String CNTFILE_LOC = "samplecnt.txt";
     final static String VOCFILE_LOC = "samplevoc.txt";
-    
-    private HashMap<String,Integer> ngrams;
+
+    private HashMap<String, Integer> ngrams;
     private Set<String> vocabulary;
-        
-    public CorpusReader() throws IOException
-    {  
+
+    public CorpusReader() throws IOException {
         readNGrams();
         readVocabulary();
+        createSmoothedCount(ngrams);
     }
-    
+
     /**
      * Returns the n-gram count of <NGram> in the file
-     * 
-     * 
+     *
+     *
      * @param nGram : space-separated list of words, e.g. "adopted by him"
-     * @return 0 if <NGram> cannot be found, 
-     * otherwise count of <NGram> in file
+     * @return 0 if <NGram> cannot be found, otherwise count of <NGram> in file
      */
-     public int getNGramCount(String nGram) throws  NumberFormatException
-    {
-        if(nGram == null || nGram.length() == 0)
-        {
+    public int getNGramCount(String nGram) throws NumberFormatException {
+        if (nGram == null || nGram.length() == 0) {
             throw new IllegalArgumentException("NGram must be non-empty.");
         }
         Integer value = ngrams.get(nGram);
-        return value==null?0:value;
+        return value == null ? 0 : value;
     }
-    
-    private void readNGrams() throws 
-            FileNotFoundException, IOException, NumberFormatException
-    {
+
+    private void readNGrams() throws
+            FileNotFoundException, IOException, NumberFormatException {
         ngrams = new HashMap<>();
 
         FileInputStream fis;
@@ -65,64 +65,82 @@ public class CorpusReader
             }
         }
     }
-    
-    
+
     private void readVocabulary() throws FileNotFoundException, IOException {
         vocabulary = new HashSet<>();
-        
+
         FileInputStream fis = new FileInputStream(VOCFILE_LOC);
         BufferedReader in = new BufferedReader(new InputStreamReader(fis));
-        
-        while(in.ready())
-        {
+
+        while (in.ready()) {
             String line = in.readLine();
             vocabulary.add(line);
         }
     }
-    
+
     /**
      * Returns the size of the number of unique words in the dataset
-     * 
+     *
      * @return the size of the number of unique words in the dataset
      */
-    public int getVocabularySize() 
-    {
+    public int getVocabularySize() {
         return vocabulary.size();
     }
-    
+
     /**
      * Returns the subset of words in set that are in the vocabulary
-     * 
+     *
      * @param set
-     * @return 
+     * @return
      */
-    public HashSet<String> inVocabulary(Set<String> set) 
-    {
+    public HashSet<String> inVocabulary(Set<String> set) {
         HashSet<String> h = new HashSet<>(set);
         h.retainAll(vocabulary);
         return h;
     }
-    
-    public boolean inVocabulary(String word) 
-    {
-       return vocabulary.contains(word);
-    }    
-    
-    public double getSmoothedCount(String nGram)
-    {
-        if(nGram == null || nGram.length() == 0)
-        {
-            throw new IllegalArgumentException("NGram must be non-empty.");
-        }
+
+    public boolean inVocabulary(String word) {
+        return vocabulary.contains(word);
+    }
+
+    private void createSmoothedCount(HashMap<String, Integer> nGrams) {
+        Integer count = 0;
+        Object[] smoothNGrams = nGrams.entrySet().toArray();
+        Arrays.sort(smoothNGrams, new Comparator() {
+            public int compare(Object s1, Object s2) {
+                return ((Map.Entry<String, Integer>) s1).getValue().compareTo(
+                        ((Map.Entry<String, Integer>) s2).getValue());
+            }
+        });
         
-        for (Integer freq: ngrams.values()){
+        
+        for (Object e : smoothNGrams) {
+            while(((Map.Entry<String, Integer>) e).getValue() == 1){
+                count++;
+            }
+            System.out.println(((Map.Entry<String, Integer>) e).getValue());
             
         }
+    }
+
+    public double getSmoothedCount(String nGram) {
+        if (nGram == null || nGram.length() == 0) {
+            throw new IllegalArgumentException("NGram must be non-empty.");
+        }
+
+        if (inVocabulary(nGram)) {
+
+        } else {
+
+        }
+        for (Integer freq : ngrams.values()) {
+
+        }
         double smoothedCount = 0.0;
-        
-        /** OK **/
-        
-        
-        return smoothedCount;        
+
+        /**
+         * OK *
+         */
+        return smoothedCount;
     }
 }
