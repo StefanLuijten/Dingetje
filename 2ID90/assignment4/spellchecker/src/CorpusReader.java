@@ -108,16 +108,19 @@ public class CorpusReader
        return vocabulary.contains(word);
     }    
     
-    public double getSmoothedCount(String NGram)
+    public double getSmoothedCount(String nGram)
     {
-        if(NGram == null || NGram.length() == 0)
+        if(nGram == null || nGram.length() == 0)
         {
             throw new IllegalArgumentException("NGram must be non-empty.");
         }
         
+        for (Integer freq: ngrams.values()){
+            
+        }
         double smoothedCount = 0.0;
         
-        /** ADD CODE HERE **/
+        /** OK **/
         
         
         return smoothedCount;        
