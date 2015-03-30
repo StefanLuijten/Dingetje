@@ -11,6 +11,7 @@ public class SpellCorrector {
     public SpellCorrector(CorpusReader cr, ConfusionMatrixReader cmr) {
         this.cr = cr;
         this.cmr = cmr;
+        System.out.println(this.getCandidateWords("hme"));
     }
 
     public String correctPhrase(String phrase) {
@@ -110,15 +111,15 @@ public class SpellCorrector {
         char[] charArray = word.toCharArray();
         char[] result = charArray.clone();
         // for all characters
-        for (int i = 0; i < charArray.length; i++) {
+        for (int i = 0; i < charArray.length-1; i++) {
             char original = charArray[i];
             // transpose with the n other chars in the word including the char itself.
-            for (int k = 0; k < charArray.length; k++) {
+            for (int k = 1; k < 2; k++) {
                 // clone the original word array;
                 result = charArray.clone();
                 // do all transpositons.
-                result[i] = charArray[k];
-                result[k] = original;
+                result[i] = charArray[i+k];
+                result[i+k] = original;
                 String candidateWord = new String(result);
                 ListOfWordsTransposition.add(candidateWord);
             }
