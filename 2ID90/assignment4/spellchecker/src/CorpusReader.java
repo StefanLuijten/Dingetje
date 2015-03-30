@@ -4,6 +4,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -18,6 +19,7 @@ public class CorpusReader {
 
     private HashMap<String, Integer> ngrams;
     private Set<String> vocabulary;
+    private ArrayList<Integer> freqCount = new ArrayList();
 
     public CorpusReader() throws IOException {
         readNGrams();
@@ -103,23 +105,35 @@ public class CorpusReader {
         return vocabulary.contains(word);
     }
 
+//    private void createSmoothedCount(HashMap<String, Integer> nGrams) {
+//        Integer count = 0;
+//        Object[] smoothNGrams = nGrams.entrySet().toArray();
+//        Arrays.sort(smoothNGrams, new Comparator() {
+//            public int compare(Object s1, Object s2) {
+//                return ((Map.Entry<String, Integer>) s1).getValue().compareTo(
+//                        ((Map.Entry<String, Integer>) s2).getValue());
+//            }
+//        });
+//        
+//        
+//        for (Object e : smoothNGrams) {
+//            while(((Map.Entry<String, Integer>) e).getValue() == 1){
+//                count++;
+//            }
+//            System.out.println(((Map.Entry<String, Integer>) e).getValue());
+//            
+//        }
+//    }
     private void createSmoothedCount(HashMap<String, Integer> nGrams) {
-        Integer count = 0;
-        Object[] smoothNGrams = nGrams.entrySet().toArray();
-        Arrays.sort(smoothNGrams, new Comparator() {
-            public int compare(Object s1, Object s2) {
-                return ((Map.Entry<String, Integer>) s1).getValue().compareTo(
-                        ((Map.Entry<String, Integer>) s2).getValue());
+        for (int i = 0; i < 100000; i++) {
+            freqCount.add(0);
+        }
+        for (Integer freq : nGrams.values()) {
+            if (freqCount.get(freq) != 0) {
+                freqCount.set(freq, freqCount.get(freq) + 1);
+            } else {
+                freqCount.set(freq, 1);
             }
-        });
-        
-        
-        for (Object e : smoothNGrams) {
-            while(((Map.Entry<String, Integer>) e).getValue() == 1){
-                count++;
-            }
-            System.out.println(((Map.Entry<String, Integer>) e).getValue());
-            
         }
     }
 
@@ -128,11 +142,6 @@ public class CorpusReader {
             throw new IllegalArgumentException("NGram must be non-empty.");
         }
 
-        if (inVocabulary(nGram)) {
-
-        } else {
-
-        }
         for (Integer freq : ngrams.values()) {
 
         }
