@@ -1,4 +1,5 @@
 
+import java.util.HashMap;
 import java.util.HashSet;
 
 public class SpellCorrector {
@@ -7,11 +8,13 @@ public class SpellCorrector {
     final private ConfusionMatrixReader cmr;
 
     final char[] ALPHABET = "abcdefghijklmnopqrstuvwxyz'".toCharArray();
+    
+    HashMap<String, String> ListOfWords;
 
     public SpellCorrector(CorpusReader cr, ConfusionMatrixReader cmr) {
         this.cr = cr;
         this.cmr = cmr;
-        System.out.println(this.getCandidateWords("hme"));
+        System.out.println(this.getCandidateWords("trem"));
     }
 
     public String correctPhrase(String phrase) {
@@ -29,26 +32,23 @@ public class SpellCorrector {
     }
 
     public double calculateChannelModelProbability(String suggested, String incorrect) {
-        /**
-         * CODE TO BE ADDED *
-         */
-
+       for int
         return 0.0;
     }
 
     public HashSet<String> getCandidateWords(String word) {
-        HashSet<String> ListOfWords = new HashSet<String>();
-
-        ListOfWords.addAll(getCandidateWordsDeletion(word));
-        ListOfWords.addAll(getCandidateWordsInsertion(word));
-        ListOfWords.addAll(getCandidateWordsSubstitution(word));
-        ListOfWords.addAll(getCandidateWordsTransposition(word));
-
-        return cr.inVocabulary(ListOfWords);
+        ListOfWords = new HashMap<>();
+        ListOfWords.putAll(getCandidateWordsDeletion(word));
+        ListOfWords.putAll(getCandidateWordsInsertion(word));
+        ListOfWords.putAll(getCandidateWordsSubstitution(word));
+        ListOfWords.putAll(getCandidateWordsTransposition(word));
+        HashSet<String> suggestedWords = new HashSet<String>(ListOfWords.keySet());
+        return cr.inVocabulary(suggestedWords);
     }
 
-    private HashSet<String> getCandidateWordsInsertion(String word) {
-        HashSet<String> ListOfWordsInsertion = new HashSet<String>();
+    private HashMap<String, String> getCandidateWordsInsertion(String word) {
+        HashMap<String, String> ListOfWordsInsertion = new HashMap<>();
+        String change = "";
         /*
          Try all insertions between each character and before/after the word.
          */
@@ -63,6 +63,11 @@ public class SpellCorrector {
                     // index of the insertion
                     if (i == k) {
                         result[i] = ALPHABET[j];
+                        if (i == 0) {
+                            change = " |" + ALPHABET[j];
+                        } else {
+                            change = result[i - 1] + "|" + result[i - 1] + "" + ALPHABET[j];
+                        }
                         // index already inserted correct the index.
                     } else if (i < k) {
                         result[k] = charArray[k - 1];
@@ -72,14 +77,15 @@ public class SpellCorrector {
                     }
                 }
                 String candidateWord = new String(result);
-                ListOfWordsInsertion.add(candidateWord);
+                ListOfWordsInsertion.put(candidateWord, change);
             }
         }
         return ListOfWordsInsertion;
     }
 
-    private HashSet<String> getCandidateWordsDeletion(String word) {
-        HashSet<String> ListOfWordsDeletion = new HashSet<String>();
+    private HashMap<String, String> getCandidateWordsDeletion(String word) {
+        HashMap<String, String> ListOfWordsDeletion = new HashMap<String, String>();
+        String change = "";
         /*
          Try all deletions possible.
          */
@@ -91,6 +97,11 @@ public class SpellCorrector {
             for (int k = 0; k < result.length + 1; k++) {
                 // index of the deletion
                 if (i == k) {
+                    if (i == 0) {
+                        change = charArray[i] + "| ";
+                    } else {
+                        change = charArray[i - 1] + "" + charArray[i] + "|" + charArray[i];
+                    }
                     // index already inserted correct the index.
                 } else if (i < k) {
                     result[k - 1] = charArray[k];
@@ -100,35 +111,38 @@ public class SpellCorrector {
                 }
             }
             String candidateWord = new String(result);
-            ListOfWordsDeletion.add(candidateWord);
+            ListOfWordsDeletion.put(candidateWord, change);
         }
         return ListOfWordsDeletion;
     }
 
-    private HashSet<String> getCandidateWordsTransposition(String word) {
-        HashSet<String> ListOfWordsTransposition = new HashSet<String>();
+    private HashMap<String, String> getCandidateWordsTransposition(String word) {
+        HashMap<String, String> ListOfWordsTransposition = new HashMap<String, String>();
 
+        String change;
         char[] charArray = word.toCharArray();
-        char[] result = charArray.clone();
+        char[] result;
         // for all characters
-        for (int i = 0; i < charArray.length-1; i++) {
+        for (int i = 0; i < charArray.length - 1; i++) {
             char original = charArray[i];
             // transpose with the n other chars in the word including the char itself.
             for (int k = 1; k < 2; k++) {
                 // clone the original word array;
                 result = charArray.clone();
                 // do all transpositons.
-                result[i] = charArray[i+k];
-                result[i+k] = original;
+                result[i] = charArray[i + k];
+                result[i + k] = original;
+                change = result[i] + "" + result[i + k] + "|" + result[i + k] + "" + result[i];
                 String candidateWord = new String(result);
-                ListOfWordsTransposition.add(candidateWord);
+                ListOfWordsTransposition.put(candidateWord, change);
             }
         }
         return ListOfWordsTransposition;
     }
 
-    private HashSet<String> getCandidateWordsSubstitution(String word) {
-        HashSet<String> ListOfWordsSubstitution = new HashSet<String>();
+    private HashMap<String, String> getCandidateWordsSubstitution(String word) {
+        HashMap<String, String> ListOfWordsSubstitution = new HashMap<String, String>();
+        String change = "";
         /*
          Try all subtitution for each character.
          */
@@ -140,9 +154,9 @@ public class SpellCorrector {
             for (int j = 0; j < ALPHABET.length; j++) {
                 result = charArray.clone();
                 result[i] = ALPHABET[j];
-
+                change = result[i] + "|" + ALPHABET[j];
                 String candidateWord = new String(result);
-                ListOfWordsSubstitution.add(candidateWord);
+                ListOfWordsSubstitution.put(candidateWord, change);
             }
         }
         return ListOfWordsSubstitution;
