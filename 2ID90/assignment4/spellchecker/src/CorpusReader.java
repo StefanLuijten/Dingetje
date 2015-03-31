@@ -5,11 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 public class CorpusReader {
@@ -20,11 +17,24 @@ public class CorpusReader {
     private HashMap<String, Integer> ngrams;
     private Set<String> vocabulary;
     private ArrayList<Integer> freqCount = new ArrayList();
+    //private ArrayList<IntPair> consecZeroes = new ArrayList();
+
+    /* 
+    class IntPair {
+        final int x;
+        final int y;
+
+        IntPair(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+      }
+    */
 
     public CorpusReader() throws IOException {
         readNGrams();
         readVocabulary();
-        createSmoothedCount(ngrams);        
+        createSmoothedCount(ngrams);
     }
 
     /**
@@ -105,25 +115,6 @@ public class CorpusReader {
         return vocabulary.contains(word);
     }
 
-//    private void createSmoothedCount(HashMap<String, Integer> nGrams) {
-//        Integer count = 0;
-//        Object[] smoothNGrams = nGrams.entrySet().toArray();
-//        Arrays.sort(smoothNGrams, new Comparator() {
-//            public int compare(Object s1, Object s2) {
-//                return ((Map.Entry<String, Integer>) s1).getValue().compareTo(
-//                        ((Map.Entry<String, Integer>) s2).getValue());
-//            }
-//        });
-//        
-//        
-//        for (Object e : smoothNGrams) {
-//            while(((Map.Entry<String, Integer>) e).getValue() == 1){
-//                count++;
-//            }
-//            System.out.println(((Map.Entry<String, Integer>) e).getValue());
-//            
-//        }
-//    }
     private void createSmoothedCount(HashMap<String, Integer> nGrams) {
         for (int i = 0; i < 100000; i++) {
             freqCount.add(0);
@@ -136,6 +127,21 @@ public class CorpusReader {
             }
         }
         System.out.println(freqCount.toString());
+        /**
+        boolean busy = false;
+        int q = 0,t = 0;
+        for (int i = 0; i < freqCount.size(); i++) {
+            if(freqCount.get(i) == 0 && !busy){
+                busy = true;
+                q = i;
+            } else if (freqCount.get(i) != 0 && busy){
+                t = i;
+                busy = false;
+                if(t-q != 1){
+                    consecZeroes.add(new IntPair(q,t));
+                }
+            } 
+        }*/
     }
 
     public double getSmoothedCount(String nGram) {
@@ -144,12 +150,13 @@ public class CorpusReader {
         }
 
         double smoothedCount = 0.0;
-        if(ngrams.containsKey(nGram)){
+        if (ngrams.containsKey(nGram)) {
             int freq = ngrams.get(nGram);
-            System.out.println("freq " +nGram+ ": " +freq);
-            smoothedCount = (((double) freq+1)*((double) freqCount.get(freq+1))/((double)freqCount.get(freq)));
-        } else{
-           smoothedCount = ((double) freqCount.get(1) / (double) ngrams.size());
+            
+            System.out.println("freq " + nGram + ": " + freq);
+            smoothedCount = (((double) freq + 1) * ((double) freqCount.get(freq + 1)) / ((double) freqCount.get(freq)));
+        } else {
+            smoothedCount = ((double) freqCount.get(1) / (double) ngrams.size());
         }
         System.out.println(smoothedCount);
         return smoothedCount;
