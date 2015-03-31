@@ -4,11 +4,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,13 +18,14 @@ public class CorpusReader {
     private HashMap<String, Integer> ngrams;
     private Set<String> vocabulary;
     private ArrayList<Integer> freqCount = new ArrayList();
-    //private ArrayList<IntPair> consecZeroes = new ArrayList();  IntPair for use in SGT
+    private ArrayList<IntPair> consecZeroes = new ArrayList();
 
-    /* 
+    //IntPair for use in SGT
     // Class used to keep track of pairs of Ints. This was meant to be used 
     // in the Simple Good Turing Implementation to keep track of series of
     // zeroes
     class IntPair {
+
         final int x;
         final int y;
 
@@ -35,15 +33,13 @@ public class CorpusReader {
             this.x = x;
             this.y = y;
         }
-      }
-    */
-    private Set<String> testVocabulary = new HashSet<String>();
-    
-
+    }
+   
     public CorpusReader() throws IOException {
         readNGrams();
         readVocabulary();
         createSmoothedCount(ngrams);
+        findZeroes();
     }
 
     /**
@@ -125,10 +121,10 @@ public class CorpusReader {
     }
 
     /**
-     * Creates an ArrayList (@freqCount) in which freqCount[r] holds
-     * the amount of words which appear r times in the hashmap nGrams
-     * 
-     * @param nGrams 
+     * Creates an ArrayList (@freqCount) in which freqCount[r] holds the amount
+     * of words which appear r times in the hashmap nGrams
+     *
+     * @param nGrams
      */
     private void createSmoothedCount(HashMap<String, Integer> nGrams) {
         for (int i = 0; i < 100000; i++) {
@@ -141,43 +137,62 @@ public class CorpusReader {
                 freqCount.set(freq, 1);
             }
         }
-       
-        
-        /**
-         * Code intended to look for series of zeroes to be used in 
-         * Simple Good Turing
-         * 
-         
-        
+    }
+
+    /**
+     * Code intended to look for series of zeroes to be used in Simple Good
+     * Turing
+     */
+    private void findZeroes() {
         boolean busy = false;
-        int q = 0,t = 0;
-        for (int i = 0; i < freqCount.size(); i++) {
-            if(freqCount.get(i) == 0 && !busy){
+        int q = 0, t = 0;
+        for (int i = 1; i < freqCount.size(); i++) {
+            if (freqCount.get(i) == 0 && !busy) {
                 busy = true;
                 q = i;
-            } else if (freqCount.get(i) != 0 && busy){
+            } else if (freqCount.get(i) != 0 && busy) {
                 t = i;
                 busy = false;
-                if(t-q != 1){
-                    consecZeroes.add(new IntPair(q,t));
+                if (t - q != 1) {
+                    consecZeroes.add(new IntPair(q, t));
                 }
-            } 
+            } else if (i == freqCount.size() - 1) {
+                t = q + (consecZeroes.get(consecZeroes.size() - 1).y - consecZeroes.get(consecZeroes.size() - 1).x);
+                if (t - q != 1) {
+                    consecZeroes.add(new IntPair(q, t));
+                }
+            }
         }
-        * */
     }
 
     public double getSmoothedCount(String nGram) {
         if (nGram == null || nGram.length() == 0) {
             throw new IllegalArgumentException("NGram must be non-empty.");
         }
-
+ 
         double smoothedCount = 0.0;
         if (ngrams.containsKey(nGram)) {
             int freq = ngrams.get(nGram);
-            smoothedCount = (((double) freq + 1) * ((double) freqCount.get(freq + 1)) / ((double) freqCount.get(freq)));
+            double q = 0, t = 0;
+            if (freq >= 0.005 * freqCount.size()) {
+                for (IntPair consec : consecZeroes) {
+                    if (q == 0 || t == 0) {
+                        if (freq == consec.y) {
+                            q = consec.x - 1;
+                        } else if (freq == consec.x - 1) {
+                            t = consec.y;
+                        }
+                    }
+                }
+                smoothedCount = (freqCount.get(freq) / (0.4 * (t - q)));
+            } else {
+                smoothedCount = (((double) freq + 1) * ((double) freqCount.get(freq + 1) / ((double) freqCount.get(freq))));
+                smoothedCount /= ngrams.size();
+            }
         } else {
             smoothedCount = ((double) freqCount.get(1) / (double) ngrams.size());
         }
+
         return smoothedCount;
     }
 
@@ -192,5 +207,5 @@ public class CorpusReader {
         }
         return count;
     }
-    
+
 }

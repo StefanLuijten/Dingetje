@@ -16,7 +16,7 @@ public class SpellCorrector {
         this.cmr = cmr;
 
         // System.out.println(this.calculateChannelModelProbability("ha\'t", "hat"));
-        System.out.println("correctPhrase:" + correctPhrase("the next rond"));
+        System.out.println("correctPhrase:" + correctPhrase("the garden at hame"));
     }
 
     public String correctPhrase(String phrase) {
@@ -34,16 +34,18 @@ public class SpellCorrector {
             candidates = getCandidateWords(w);
             // for all candidates calculate change
             for (String candidate : candidates) {
+                System.out.println(candidate);
                 double chance = calculateChannelModelProbability(candidate, w) * cr.getSmoothedCount(candidate);
+                System.out.println("Chance:"+ chance);
                 System.out.println("ChannelModel:" + calculateChannelModelProbability(candidate, w));
-                System.out.println("SmootehdCount:" + cr.getSmoothedCount(candidate));
+                System.out.println("SmoothedCount:" + cr.getSmoothedCount(candidate));
                 wordChance.put(candidate, chance);
             }
 
             Entry<String, Double> bestCandidate = null;
 
             for (Entry<String, Double> candidate : wordChance.entrySet()) {
-                if (bestCandidate == null || bestCandidate.getValue() > bestCandidate.getValue()) {
+                if (bestCandidate == null || candidate.getValue() > bestCandidate.getValue()) {
                     bestCandidate = candidate;
                 }
             }
@@ -54,14 +56,11 @@ public class SpellCorrector {
     }
 
     public double calculateChannelModelProbability(String suggested, String incorrect) {
-        System.out.println("suggested:" + suggested);
-        System.out.println("incorrect:" + incorrect);
-
+       
         if (suggested.equals(incorrect)) {
-            return 0.95;
+            return 0.80;
         } else {
             String change = findChange(suggested, incorrect);
-            System.out.println("change:" + change);
             String[] input = change.split("\\|");
             String error = input[0];
             String correct = input[1];
