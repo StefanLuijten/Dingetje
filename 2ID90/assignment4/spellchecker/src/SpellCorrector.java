@@ -1,6 +1,8 @@
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map.Entry;
 
 public class SpellCorrector {
 
@@ -21,27 +23,33 @@ public class SpellCorrector {
         if (phrase == null || phrase.length() == 0) {
             throw new IllegalArgumentException("phrase must be non-empty.");
         }
-
+        String finalSuggestion = "";
         String[] words = phrase.split(" ");
         HashSet<String> candidates;
-        HashMap<String, Double> wordChance = new HashMap<>();
+        HashMap<String, Double> wordChance;
         // for all words in the sentence
         for (String w : words) {
+            wordChance = new HashMap<>();
             // get candidates for the word
             candidates = getCandidateWords(w);
             // for all candidates calculate change
             for (String candidate : candidates) {
                 double chance = calculateChannelModelProbability(candidate, w) * cr.getSmoothedCount(candidate);
-                System.out.println("SmootehdCount:"+cr.getSmoothedCount(candidate));
+                System.out.println("ChannelModel:" + calculateChannelModelProbability(candidate, w));
+                System.out.println("SmootehdCount:" + cr.getSmoothedCount(candidate));
                 wordChance.put(candidate, chance);
             }
-              System.out.println("wordChance:"+ wordChance.toString());
-        }
-        String finalSuggestion = "";
 
-        /**
-         * CODE TO BE ADDED *
-         */
+            Entry<String, Double> bestCandidate = null;
+
+            for (Entry<String, Double> candidate : wordChance.entrySet()) {
+                if (bestCandidate == null || bestCandidate.getValue() > bestCandidate.getValue()) {
+                    bestCandidate = candidate;
+                }
+            }
+            finalSuggestion = finalSuggestion + " " + bestCandidate.getKey();
+        }
+
         return finalSuggestion.trim();
     }
 

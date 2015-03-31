@@ -147,6 +147,8 @@ public class CorpusReader {
          * Code intended to look for series of zeroes to be used in 
          * Simple Good Turing
          * 
+         
+        
         boolean busy = false;
         int q = 0,t = 0;
         for (int i = 0; i < freqCount.size(); i++) {
@@ -160,7 +162,8 @@ public class CorpusReader {
                     consecZeroes.add(new IntPair(q,t));
                 }
             } 
-        }*/
+        }
+        * */
     }
 
     public double getSmoothedCount(String nGram) {
