@@ -22,7 +22,7 @@ public class CorpusReader {
     private ArrayList<IntPair> consecZeroes = new ArrayList();
 
     //IntPair for use in SGT
-    // Class used to keep track of pairs of Ints. This was meant to be used 
+    // Class used to keep track of pairs of Ints. This is meant to be used 
     // in the Simple Good Turing Implementation to keep track of series of
     // zeroes
     class IntPair {
@@ -167,6 +167,16 @@ public class CorpusReader {
         }
     }
 
+    /**
+     * Returns for a certain nGram (@nGram) what the probability is with our smoothing
+     * function. The functions we use are better explained in the document which 
+     * belongs with this code. Basically we use Good Turing for small values and
+     * a stripped down version of Simple Good Turing for greater values. 
+     * 
+     * @param nGram
+     * @return smoothedCount, with smoothedCount containing the probability
+     *         that the nGram is correct.
+     */
     public double getSmoothedCount(String nGram) {
         if (nGram == null || nGram.length() == 0) {
             throw new IllegalArgumentException("NGram must be non-empty.");
