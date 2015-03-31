@@ -11,7 +11,7 @@ public class SpellCorrector {
     public SpellCorrector(CorpusReader cr, ConfusionMatrixReader cmr) {
         this.cr = cr;
         this.cmr = cmr;
-        System.out.println(this.getCandidateWords("hme"));
+        System.out.println(this.findChange("teet", "tset"));
     }
 
     public String correctPhrase(String phrase) {
@@ -29,21 +29,101 @@ public class SpellCorrector {
     }
 
     public double calculateChannelModelProbability(String suggested, String incorrect) {
-        /**
-         * CODE TO BE ADDED *
-         */
-
+        char[] suggestedArray = suggested.toCharArray();
+        char[] incorrectArray = incorrect.toCharArray();
+        String change = "";
+        // TODO*****
         return 0.0;
+    }
+
+    private String findChange(String suggested, String incorrect) {
+        char[] suggestedArray = suggested.toCharArray();
+        char[] incorrectArray = incorrect.toCharArray();
+
+        // There is a deletion.
+        if (suggestedArray.length < incorrectArray.length) {
+            return findChangeDeletion(suggestedArray, incorrectArray);
+            // There is a insertion.
+        } else if (suggestedArray.length > incorrectArray.length) {
+            return findChangeInsertion(suggestedArray, incorrectArray);
+            // length is equal thus transposition/substitution or no change.
+        } else {
+            return findChangeSubstitutionTransposition(suggestedArray, incorrectArray);
+        }
+    }
+
+    private String findChangeDeletion(char[] suggested, char[] incorrect) {
+        String change = "|";
+        for (int i = 0; i < incorrect.length; i++) {
+            // Catch the boundary if last index is removed. (Does not exist for correct array)
+            if (i == incorrect.length - 1) {
+                change = incorrect[i - 1] + "" + incorrect[i] + "|" + incorrect[i - 1];
+                break;
+            } else {
+                // If characters are not equal to eachother and there has to be a deletion.
+                if (suggested[i] != incorrect[i]) {
+                    if (i == 0) {
+                        change = incorrect[i] + "|";
+                        break;
+                    } else {
+                        change = incorrect[i - 1] + "" + incorrect[i] + "|" + incorrect[i - 1];
+                        break;
+                    }
+                }
+            }
+        }
+        return change;
+    }
+
+    private String findChangeInsertion(char[] suggested, char[] incorrect) {
+        String change = "|";
+        for (int i = 0; i < suggested.length; i++) {
+            // Catch the boundary if last index is the insert. (Does not exist for the incorrect array)
+            if (i == suggested.length - 1) {
+                change = suggested[i - 1] + "|" + suggested[i - 1] + "" + suggested[i];
+                break;
+            } else {
+                // If characters are not equal to eachother and there has to be a insertion.
+                if (incorrect[i] != suggested[i]) {
+                    if (i == 0) {
+                        change = " |" + suggested[i];
+                        break;
+                    } else {
+                        change = suggested[i - 1] + "|" + suggested[i - 1] + "" + suggested[i];
+                        break;
+                    }
+                }
+            }
+        }
+        return change;
+    }
+
+    private String findChangeSubstitutionTransposition(char[] suggested, char[] incorrect) {
+        String change = "|";
+
+        for (int i = 0; i < suggested.length; i++) {
+            // when values not equal check if it is a transposition.
+            if (suggested[i] != incorrect[i]) {
+                // If transposition
+                if ((suggested[i + 1] == incorrect[i]) && (suggested[i] == incorrect[i + 1])) {
+                    change = incorrect[i] + "" + incorrect[i + 1] + "|" + suggested[i] + "" + suggested[i + 1];
+                    break;
+                } // substitution
+                else {
+                    change = incorrect[i] + "|" + suggested[i];
+                    break;
+                }
+            }
+        }
+        return change;
     }
 
     public HashSet<String> getCandidateWords(String word) {
         HashSet<String> ListOfWords = new HashSet<String>();
-
         ListOfWords.addAll(getCandidateWordsDeletion(word));
         ListOfWords.addAll(getCandidateWordsInsertion(word));
         ListOfWords.addAll(getCandidateWordsSubstitution(word));
         ListOfWords.addAll(getCandidateWordsTransposition(word));
-
         return cr.inVocabulary(ListOfWords);
     }
 
@@ -111,15 +191,15 @@ public class SpellCorrector {
         char[] charArray = word.toCharArray();
         char[] result = charArray.clone();
         // for all characters
-        for (int i = 0; i < charArray.length-1; i++) {
+        for (int i = 0; i < charArray.length - 1; i++) {
             char original = charArray[i];
             // transpose with the n other chars in the word including the char itself.
             for (int k = 1; k < 2; k++) {
                 // clone the original word array;
                 result = charArray.clone();
                 // do all transpositons.
-                result[i] = charArray[i+k];
-                result[i+k] = original;
+                result[i] = charArray[i + k];
+                result[i + k] = original;
                 String candidateWord = new String(result);
                 ListOfWordsTransposition.add(candidateWord);
             }
