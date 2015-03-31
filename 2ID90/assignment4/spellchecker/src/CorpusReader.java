@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class CorpusReader {
 
@@ -30,6 +32,8 @@ public class CorpusReader {
         }
       }
     */
+    private Set<String> testVocabulary = new HashSet<String>();
+    
 
     public CorpusReader() throws IOException {
         readNGrams();
@@ -126,7 +130,6 @@ public class CorpusReader {
                 freqCount.set(freq, 1);
             }
         }
-        System.out.println(freqCount.toString());
         /**
         boolean busy = false;
         int q = 0,t = 0;
@@ -158,7 +161,19 @@ public class CorpusReader {
         } else {
             smoothedCount = ((double) freqCount.get(1) / (double) ngrams.size());
         }
-        System.out.println(smoothedCount);
         return smoothedCount;
     }
+
+    public Integer retrieveSubStringVocabulary(String subString) {
+        int count = 0;
+        Pattern pattern = Pattern.compile(subString);
+        for(String s: testVocabulary){
+            Matcher matcher = pattern.matcher(s);
+            while(matcher.find()) {
+                count++;
+            }
+        }
+        return count;
+    }
+    
 }
