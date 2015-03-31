@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class CorpusReader {
 
@@ -20,11 +22,13 @@ public class CorpusReader {
     private HashMap<String, Integer> ngrams;
     private Set<String> vocabulary;
     private ArrayList<Integer> freqCount = new ArrayList();
+    private Set<String> testVocabulary = new HashSet<String>();
+    
 
     public CorpusReader() throws IOException {
         readNGrams();
         readVocabulary();
-        createSmoothedCount(ngrams);        
+        createSmoothedCount(ngrams);
     }
 
     /**
@@ -135,7 +139,6 @@ public class CorpusReader {
                 freqCount.set(freq, 1);
             }
         }
-        System.out.println(freqCount.toString());
     }
 
     public double getSmoothedCount(String nGram) {
@@ -144,14 +147,25 @@ public class CorpusReader {
         }
 
         double smoothedCount = 0.0;
-        if(ngrams.containsKey(nGram)){
+        if (ngrams.containsKey(nGram)) {
             int freq = ngrams.get(nGram);
-            System.out.println("freq " +nGram+ ": " +freq);
-            smoothedCount = (((double) freq+1)*((double) freqCount.get(freq+1))/((double)freqCount.get(freq)));
-        } else{
-           smoothedCount = ((double) freqCount.get(1) / (double) ngrams.size());
+            smoothedCount = (((double) freq + 1) * ((double) freqCount.get(freq + 1)) / ((double) freqCount.get(freq)));
+        } else {
+            smoothedCount = ((double) freqCount.get(1) / (double) ngrams.size());
         }
-        System.out.println(smoothedCount);
         return smoothedCount;
     }
+
+    public Integer retrieveSubStringVocabulary(String subString) {
+        int count = 0;
+        Pattern pattern = Pattern.compile(subString);
+        for(String s: testVocabulary){
+            Matcher matcher = pattern.matcher(s);
+            while(matcher.find()) {
+                count++;
+            }
+        }
+        return count;
+    }
+    
 }

@@ -11,7 +11,8 @@ public class SpellCorrector {
     public SpellCorrector(CorpusReader cr, ConfusionMatrixReader cmr) {
         this.cr = cr;
         this.cmr = cmr;
-        System.out.println(this.findChange("teet", "tset"));
+        
+        System.out.println(this.calculateChannelModelProbability("tet", "test"));
     }
 
     public String correctPhrase(String phrase) {
@@ -27,15 +28,18 @@ public class SpellCorrector {
          */
         return finalSuggestion.trim();
     }
-
+    
     public double calculateChannelModelProbability(String suggested, String incorrect) {
-        char[] suggestedArray = suggested.toCharArray();
-        char[] incorrectArray = incorrect.toCharArray();
-        String change = "";
-        // TODO*****
+        String change = findChange(suggested, incorrect);
+        System.out.println(change);
+        String[] input = change.split("|");
+        String error = input[0];
+        String correct = input[2];
+        System.out.println(cmr.getConfusionCount(error, correct));
+       
         return 0.0;
     }
-
+    
     private String findChange(String suggested, String incorrect) {
         char[] suggestedArray = suggested.toCharArray();
         char[] incorrectArray = incorrect.toCharArray();
