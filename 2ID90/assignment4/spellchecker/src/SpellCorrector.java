@@ -8,7 +8,9 @@ public class SpellCorrector {
 
     final private CorpusReader cr;
     final private ConfusionMatrixReader cmr;
-
+    final private double NO_ERROR = 0.8;
+    final private Integer LAMBDA = 2;
+    final private double SCALE_FACTOR = 4;
     final char[] ALPHABET = "abcdefghijklmnopqrstuvwxyz'".toCharArray();
 
     public SpellCorrector(CorpusReader cr, ConfusionMatrixReader cmr) {
@@ -16,7 +18,7 @@ public class SpellCorrector {
         this.cmr = cmr;
 
         // System.out.println(this.calculateChannelModelProbability("ha\'t", "hat"));
-        System.out.println("correctPhrase:" + correctPhrase("the garden at hame"));
+        //  System.out.println("test:"+calculateChannelModelProbability("ere", "were"));
     }
 
     public String correctPhrase(String phrase) {
@@ -27,18 +29,37 @@ public class SpellCorrector {
         String[] words = phrase.split(" ");
         HashSet<String> candidates;
         HashMap<String, Double> wordChance;
+        double chance = 0.0;
         // for all words in the sentence
-        for (String w : words) {
+        for (int i = 0; i < words.length; i++) {
             wordChance = new HashMap<>();
             // get candidates for the word
-            candidates = getCandidateWords(w);
+            candidates = getCandidateWords(words[i]);
             // for all candidates calculate change
             for (String candidate : candidates) {
                 System.out.println(candidate);
-                double chance = calculateChannelModelProbability(candidate, w) * cr.getSmoothedCount(candidate);
-                System.out.println("Chance:"+ chance);
-                System.out.println("ChannelModel:" + calculateChannelModelProbability(candidate, w));
-                System.out.println("SmoothedCount:" + cr.getSmoothedCount(candidate));
+
+                if (i != 0) {
+                    double bothOccurBefore = cr.getSmoothedCount(words[i - 1] + " " + candidate);
+                    double lastOccursBefore = cr.getSmoothedCount(words[i - 1]);
+                    double conditProbBefore = bothOccurBefore / lastOccursBefore;
+
+                    chance = calculateChannelModelProbability(candidate, words[i]) * (SCALE_FACTOR * conditProbBefore) * cr.getSmoothedCount(words[i-1]);
+                    System.out.println("Smoot bigram :" + conditProbBefore);
+                    System.out.println("conditProb:" + conditProbBefore);
+                } else {
+                    double bothOccur = cr.getSmoothedCount(candidate + " " + words[i + 1]);
+                    double lastOccurs = cr.getSmoothedCount(candidate);
+                    double conditProb = bothOccur / lastOccurs;
+                    chance = calculateChannelModelProbability(candidate, words[i]) * (SCALE_FACTOR * conditProb) * cr.getSmoothedCount(candidate);
+                    System.out.println("smoothedCount: " + cr.getSmoothedCount(candidate));
+                }
+
+//                double chance = calculateChannelModelProbability(candidatesArray[i].toString(), w) * cr.getSmoothedCount(candidatesArray[i].toString()) * cr.getSmoothedCount(candidatesArray[i].toString()+" " +candidatesArray[i].toString());
+                System.out.println("Chance:" + chance);
+                System.out.println("ChannelModel:" + calculateChannelModelProbability(candidate, words[i]));
+            //    System.out.println("SmoothedCount:" + cr.getSmoothedCount(candidatesArray[i].toString()));
+
                 wordChance.put(candidate, chance);
             }
 
@@ -56,9 +77,9 @@ public class SpellCorrector {
     }
 
     public double calculateChannelModelProbability(String suggested, String incorrect) {
-       
+
         if (suggested.equals(incorrect)) {
-            return 0.80;
+            return NO_ERROR;
         } else {
             String change = findChange(suggested, incorrect);
             String[] input = change.split("\\|");
@@ -66,6 +87,10 @@ public class SpellCorrector {
             String correct = input[1];
             int confCount = cmr.getConfusionCount(error, correct);
             int totalCount = cr.retrieveSubStringCountVocabulary(correct);
+            //avoid Inifinity
+            if (totalCount == 0) {
+                totalCount = 1;
+            }
             return (double) confCount / (double) totalCount;
         }
     }

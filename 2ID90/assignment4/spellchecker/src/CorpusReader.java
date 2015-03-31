@@ -1,3 +1,4 @@
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -34,12 +35,13 @@ public class CorpusReader {
             this.y = y;
         }
     }
-   
+
     public CorpusReader() throws IOException {
         readNGrams();
         readVocabulary();
         createSmoothedCount(ngrams);
         findZeroes();
+        System.out.println(getSmoothedCount("of water"));
     }
 
     /**
@@ -169,28 +171,29 @@ public class CorpusReader {
         if (nGram == null || nGram.length() == 0) {
             throw new IllegalArgumentException("NGram must be non-empty.");
         }
- 
+
         double smoothedCount = 0.0;
         if (ngrams.containsKey(nGram)) {
             int freq = ngrams.get(nGram);
             double q = 0, t = 0;
-            if (freq >= 0.005 * freqCount.size()) {
+            if (freq >= 0.003 * freqCount.size()) {
                 for (IntPair consec : consecZeroes) {
                     if (q == 0 || t == 0) {
                         if (freq == consec.y) {
-                            q = consec.x - 1;
+                            q = (double) consec.x - 1;
                         } else if (freq == consec.x - 1) {
-                            t = consec.y;
+                            t = (double) consec.y;
                         }
                     }
                 }
-                smoothedCount = (freqCount.get(freq) / (0.4 * (t - q)));
+                smoothedCount = ((double) freqCount.get(freq) / (0.5 * (t - q)/2500));
             } else {
                 smoothedCount = (((double) freq + 1) * ((double) freqCount.get(freq + 1) / ((double) freqCount.get(freq))));
-                smoothedCount /= ngrams.size();
+              
             }
         } else {
             smoothedCount = ((double) freqCount.get(1) / (double) ngrams.size());
+
         }
 
         return smoothedCount;
@@ -207,5 +210,4 @@ public class CorpusReader {
         }
         return count;
     }
-
 }
