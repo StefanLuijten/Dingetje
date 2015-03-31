@@ -1,4 +1,5 @@
 
+import java.util.HashMap;
 import java.util.HashSet;
 
 public class SpellCorrector {
@@ -11,8 +12,9 @@ public class SpellCorrector {
     public SpellCorrector(CorpusReader cr, ConfusionMatrixReader cmr) {
         this.cr = cr;
         this.cmr = cmr;
-        
-        System.out.println(this.calculateChannelModelProbability("tet", "test"));
+
+        // System.out.println(this.calculateChannelModelProbability("ha\'t", "hat"));
+        System.out.println("correctPhrase:" + correctPhrase("the next rond"));
     }
 
     public String correctPhrase(String phrase) {
@@ -21,6 +23,20 @@ public class SpellCorrector {
         }
 
         String[] words = phrase.split(" ");
+        HashSet<String> candidates;
+        HashMap<String, Double> wordChance = new HashMap<>();
+        // for all words in the sentence
+        for (String w : words) {
+            // get candidates for the word
+            candidates = getCandidateWords(w);
+            // for all candidates calculate change
+            for (String candidate : candidates) {
+                double chance = calculateChannelModelProbability(candidate, w) * cr.getSmoothedCount(candidate);
+                System.out.println("SmootehdCount:"+ cr.getSmoothedCount(candidate));
+                wordChance.put(candidate, chance);
+            }
+              System.out.println("wordChance:"+ wordChance.toString());
+        }
         String finalSuggestion = "";
 
         /**
@@ -28,18 +44,25 @@ public class SpellCorrector {
          */
         return finalSuggestion.trim();
     }
-    
+
     public double calculateChannelModelProbability(String suggested, String incorrect) {
-        String change = findChange(suggested, incorrect);
-        System.out.println(change);
-        String[] input = change.split("|");
-        String error = input[0];
-        String correct = input[2];
-        System.out.println(cmr.getConfusionCount(error, correct));
-       
-        return 0.0;
+        System.out.println("suggested:" + suggested);
+        System.out.println("incorrect:" + incorrect);
+
+        if (suggested.equals(incorrect)) {
+            return 0.95;
+        } else {
+            String change = findChange(suggested, incorrect);
+            System.out.println("change:" + change);
+            String[] input = change.split("\\|");
+            String error = input[0];
+            String correct = input[1];
+            int confCount = cmr.getConfusionCount(error, correct);
+            int totalCount = cr.retrieveSubStringCountVocabulary(correct);
+            return (double) confCount / (double) totalCount;
+        }
     }
-    
+
     private String findChange(String suggested, String incorrect) {
         char[] suggestedArray = suggested.toCharArray();
         char[] incorrectArray = incorrect.toCharArray();
@@ -57,7 +80,7 @@ public class SpellCorrector {
     }
 
     private String findChangeDeletion(char[] suggested, char[] incorrect) {
-        String change = "|";
+        String change = " | ";
         for (int i = 0; i < incorrect.length; i++) {
             // Catch the boundary if last index is removed. (Does not exist for correct array)
             if (i == incorrect.length - 1) {
@@ -67,7 +90,7 @@ public class SpellCorrector {
                 // If characters are not equal to eachother and there has to be a deletion.
                 if (suggested[i] != incorrect[i]) {
                     if (i == 0) {
-                        change = incorrect[i] + "|";
+                        change = incorrect[i] + "| ";
                         break;
                     } else {
                         change = incorrect[i - 1] + "" + incorrect[i] + "|" + incorrect[i - 1];
@@ -80,7 +103,7 @@ public class SpellCorrector {
     }
 
     private String findChangeInsertion(char[] suggested, char[] incorrect) {
-        String change = "|";
+        String change = " | ";
         for (int i = 0; i < suggested.length; i++) {
             // Catch the boundary if last index is the insert. (Does not exist for the incorrect array)
             if (i == suggested.length - 1) {
@@ -103,20 +126,22 @@ public class SpellCorrector {
     }
 
     private String findChangeSubstitutionTransposition(char[] suggested, char[] incorrect) {
-        String change = "|";
+        String change = " | ";
 
         for (int i = 0; i < suggested.length; i++) {
             // when values not equal check if it is a transposition.
             if (suggested[i] != incorrect[i]) {
-                // If transposition
-                if ((suggested[i + 1] == incorrect[i]) && (suggested[i] == incorrect[i + 1])) {
-                    change = incorrect[i] + "" + incorrect[i + 1] + "|" + suggested[i] + "" + suggested[i + 1];
-                    break;
-                } // substitution
-                else {
-                    change = incorrect[i] + "|" + suggested[i];
-                    break;
+                // If last character it cannot be transposition since this is seen at the first switched character.
+                if (i != suggested.length - 1) {
+                    // If transposition
+                    if ((suggested[i + 1] == incorrect[i]) && (suggested[i] == incorrect[i + 1])) {
+                        change = incorrect[i] + "" + incorrect[i + 1] + "|" + suggested[i] + "" + suggested[i + 1];
+                        break;
+                    }
                 }
+                // substitution
+                change = incorrect[i] + "|" + suggested[i];
+                break;
             }
         }
         return change;

@@ -22,8 +22,6 @@ public class CorpusReader {
     private HashMap<String, Integer> ngrams;
     private Set<String> vocabulary;
     private ArrayList<Integer> freqCount = new ArrayList();
-    private Set<String> testVocabulary = new HashSet<String>();
-    
 
     public CorpusReader() throws IOException {
         readNGrams();
@@ -156,16 +154,16 @@ public class CorpusReader {
         return smoothedCount;
     }
 
-    public Integer retrieveSubStringVocabulary(String subString) {
+    public Integer retrieveSubStringCountVocabulary(String subString) {
         int count = 0;
         Pattern pattern = Pattern.compile(subString);
-        for(String s: testVocabulary){
+        for (String s : vocabulary) {
             Matcher matcher = pattern.matcher(s);
-            while(matcher.find()) {
+            while (matcher.find()) {
                 count++;
             }
         }
         return count;
     }
-    
+
 }
