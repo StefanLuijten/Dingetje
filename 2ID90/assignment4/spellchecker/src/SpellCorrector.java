@@ -8,17 +8,13 @@ public class SpellCorrector {
 
     final private CorpusReader cr;
     final private ConfusionMatrixReader cmr;
-    final private double NO_ERROR = 0.8;
-    final private Integer LAMBDA = 2;
-    final private double SCALE_FACTOR = 4;
+    // FINAL representing that we think that 80% of the words are typed correctly.
+    final private double NO_ERROR = 0.80;
     final char[] ALPHABET = "abcdefghijklmnopqrstuvwxyz'".toCharArray();
 
     public SpellCorrector(CorpusReader cr, ConfusionMatrixReader cmr) {
         this.cr = cr;
         this.cmr = cmr;
-
-        // System.out.println(this.calculateChannelModelProbability("ha\'t", "hat"));
-        //  System.out.println("test:"+calculateChannelModelProbability("ere", "were"));
     }
 
     public String correctPhrase(String phrase) {
@@ -27,7 +23,9 @@ public class SpellCorrector {
         }
         String finalSuggestion = "";
         String[] words = phrase.split(" ");
+        // All candidate corrections
         HashSet<String> candidates;
+        // Set of candidate words and chance that they belong in the sentence.
         HashMap<String, Double> wordChance;
         double chance = 0.0;
         // for all words in the sentence
@@ -35,41 +33,51 @@ public class SpellCorrector {
             wordChance = new HashMap<>();
             // get candidates for the word
             candidates = getCandidateWords(words[i]);
-            // for all candidates calculate change
+            // for all candidates calculate chance
             for (String candidate : candidates) {
-                System.out.println(candidate);
-
-                if (i != 0) {
+                // check if it is not the first or last word in the sentence
+                if (i != 0 && i != words.length - 1) {
+                    //calculate probability that the candidate word comes after the previous word. 
                     double bothOccurBefore = cr.getSmoothedCount(words[i - 1] + " " + candidate);
                     double lastOccursBefore = cr.getSmoothedCount(words[i - 1]);
                     double conditProbBefore = bothOccurBefore / lastOccursBefore;
 
-                    chance = calculateChannelModelProbability(candidate, words[i]) * (SCALE_FACTOR * conditProbBefore) * cr.getSmoothedCount(words[i-1]);
-                    System.out.println("Smoot bigram :" + conditProbBefore);
-                    System.out.println("conditProb:" + conditProbBefore);
+                    //calculate probability that the candidate word is followed by the next word already present in the sentence.
+                    double bothOccurAfter = cr.getSmoothedCount(candidate + " " + words[i + 1]);
+                    double lastOccursAfter = cr.getSmoothedCount(candidate);
+                    double conditProbAfter = bothOccurAfter / lastOccursAfter;
+
+                    // calculate the probability that this is the right word using the levhenstein distance max 1 with the confision matrix
+                    // the two metrics above and the smoothed count for the unigram.
+                    chance = calculateChannelModelProbability(candidate, words[i]) * conditProbBefore * conditProbAfter * cr.getSmoothedCount(candidate);
+
+                    // last word which checks only the bigram with the word before
+                } else if (i == words.length - 1) {
+                    double bothOccurBefore = cr.getSmoothedCount(words[i - 1] + " " + candidate);
+                    double lastOccursBefore = cr.getSmoothedCount(words[i - 1]);
+                    double conditProbBefore = bothOccurBefore / lastOccursBefore;
+
+                    chance = calculateChannelModelProbability(candidate, words[i]) * conditProbBefore * cr.getSmoothedCount(candidate);
+
+                    // first word which checks only the bigram with the word after it.
                 } else {
                     double bothOccur = cr.getSmoothedCount(candidate + " " + words[i + 1]);
                     double lastOccurs = cr.getSmoothedCount(candidate);
                     double conditProb = bothOccur / lastOccurs;
-                    chance = calculateChannelModelProbability(candidate, words[i]) * (SCALE_FACTOR * conditProb) * cr.getSmoothedCount(candidate);
-                    System.out.println("smoothedCount: " + cr.getSmoothedCount(candidate));
+                    chance = calculateChannelModelProbability(candidate, words[i]) * conditProb * cr.getSmoothedCount(candidate);
                 }
-
-//                double chance = calculateChannelModelProbability(candidatesArray[i].toString(), w) * cr.getSmoothedCount(candidatesArray[i].toString()) * cr.getSmoothedCount(candidatesArray[i].toString()+" " +candidatesArray[i].toString());
-                System.out.println("Chance:" + chance);
-                System.out.println("ChannelModel:" + calculateChannelModelProbability(candidate, words[i]));
-            //    System.out.println("SmoothedCount:" + cr.getSmoothedCount(candidatesArray[i].toString()));
-
+                // put candidates with the probability into a hashmap
                 wordChance.put(candidate, chance);
             }
 
+            // get candidate with highest probability of corectness.
             Entry<String, Double> bestCandidate = null;
-
             for (Entry<String, Double> candidate : wordChance.entrySet()) {
                 if (bestCandidate == null || candidate.getValue() > bestCandidate.getValue()) {
                     bestCandidate = candidate;
                 }
             }
+            // add to the final sentence.
             finalSuggestion = finalSuggestion + " " + bestCandidate.getKey();
         }
 
@@ -77,7 +85,7 @@ public class SpellCorrector {
     }
 
     public double calculateChannelModelProbability(String suggested, String incorrect) {
-
+        // if equal than give the NO_ERROR value.
         if (suggested.equals(incorrect)) {
             return NO_ERROR;
         } else {
@@ -85,9 +93,11 @@ public class SpellCorrector {
             String[] input = change.split("\\|");
             String error = input[0];
             String correct = input[1];
+            // gets number of times the mistake has been made. 
             int confCount = cmr.getConfusionCount(error, correct);
+            // gets number of times the substring occurs in the vocabulary.
             int totalCount = cr.retrieveSubStringCountVocabulary(correct);
-            //avoid Inifinity
+            //avoid Infinity
             if (totalCount == 0) {
                 totalCount = 1;
             }
@@ -95,6 +105,13 @@ public class SpellCorrector {
         }
     }
 
+    /**
+     * Finds the change that is made between the incorrect and suggested string.
+     *
+     * @param suggested
+     * @param incorrect
+     * @return the change in format incorrect|correct
+     */
     private String findChange(String suggested, String incorrect) {
         char[] suggestedArray = suggested.toCharArray();
         char[] incorrectArray = incorrect.toCharArray();
@@ -111,8 +128,16 @@ public class SpellCorrector {
         }
     }
 
+    /**
+     * Finds the change that is made using a delete action.
+     *
+     * @param suggested
+     * @param incorrect
+     * @return the change in format incorrect|correct
+     */
     private String findChangeDeletion(char[] suggested, char[] incorrect) {
         String change = " | ";
+        // for the whole character array
         for (int i = 0; i < incorrect.length; i++) {
             // Catch the boundary if last index is removed. (Does not exist for correct array)
             if (i == incorrect.length - 1) {
@@ -134,6 +159,13 @@ public class SpellCorrector {
         return change;
     }
 
+    /**
+     * Finds the change that is made using an insertion action.
+     *
+     * @param suggested
+     * @param incorrect
+     * @return the change in format incorrect|correct
+     */
     private String findChangeInsertion(char[] suggested, char[] incorrect) {
         String change = " | ";
         for (int i = 0; i < suggested.length; i++) {
@@ -157,6 +189,13 @@ public class SpellCorrector {
         return change;
     }
 
+    /**
+     * Finds the change that is made using a transposition or substitution.
+     *
+     * @param suggested
+     * @param incorrect
+     * @return the change in format incorrect|correct
+     */
     private String findChangeSubstitutionTransposition(char[] suggested, char[] incorrect) {
         String change = " | ";
 
@@ -179,23 +218,42 @@ public class SpellCorrector {
         return change;
     }
 
+    /**
+     * Searches all candidate words that are within a Damauru-Levhenstein
+     * distance of 1 and are present in the vocabulary.
+     *
+     * @param word
+     * @return all candidates
+     */
     public HashSet<String> getCandidateWords(String word) {
         HashSet<String> ListOfWords = new HashSet<String>();
+        // All candidates found by deletion of a character
         ListOfWords.addAll(getCandidateWordsDeletion(word));
+        // All candidates found by insertion of a character
         ListOfWords.addAll(getCandidateWordsInsertion(word));
+        // All candidates found by substitution of a character
         ListOfWords.addAll(getCandidateWordsSubstitution(word));
+        // All candidates found by transposition of a character
         ListOfWords.addAll(getCandidateWordsTransposition(word));
+        //
         return cr.inVocabulary(ListOfWords);
     }
 
+    /**
+     * Gets all candidate words that can be found using insertion. Using
+     * insertion of the whole ALPHABET array before and after each character.
+     *
+     * @param word
+     * @return all candidate words.
+     */
     private HashSet<String> getCandidateWordsInsertion(String word) {
         HashSet<String> ListOfWordsInsertion = new HashSet<String>();
-        /*
-         Try all insertions between each character and before/after the word.
-         */
+
+        // create new result array. 
         char[] result = new char[word.length() + 1];
+        // copy the original word to an array.
         char[] charArray = word.toCharArray();
-        // for all characters + after the word
+        // for all characters
         for (int i = 0; i < result.length; i++) {
             //for the whole alphabet
             for (int j = 0; j < ALPHABET.length; j++) {
@@ -212,6 +270,7 @@ public class SpellCorrector {
                         result[k] = charArray[k];
                     }
                 }
+                // Set to string and add to HashSet.
                 String candidateWord = new String(result);
                 ListOfWordsInsertion.add(candidateWord);
             }
@@ -219,6 +278,13 @@ public class SpellCorrector {
         return ListOfWordsInsertion;
     }
 
+    /**
+     * Gets all candidate words that can be found using deletion. Using deletion
+     * of all characters.
+     *
+     * @param word
+     * @return all candidate words.
+     */
     private HashSet<String> getCandidateWordsDeletion(String word) {
         HashSet<String> ListOfWordsDeletion = new HashSet<String>();
         /*
@@ -246,6 +312,12 @@ public class SpellCorrector {
         return ListOfWordsDeletion;
     }
 
+    /**
+     * Gets all candidate words that can be found using insertion. Using
+     * insertion of the whole ALPHABET array before and after each character.
+     * @param word
+     * @return
+     */
     private HashSet<String> getCandidateWordsTransposition(String word) {
         HashSet<String> ListOfWordsTransposition = new HashSet<String>();
 

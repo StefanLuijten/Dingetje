@@ -176,7 +176,7 @@ public class CorpusReader {
         if (ngrams.containsKey(nGram)) {
             int freq = ngrams.get(nGram);
             double q = 0, t = 0;
-            if (freq >= 0.003 * freqCount.size()) {
+            if (freq >= 0.0025 * freqCount.size()) {
                 for (IntPair consec : consecZeroes) {
                     if (q == 0 || t == 0) {
                         if (freq == consec.y) {
