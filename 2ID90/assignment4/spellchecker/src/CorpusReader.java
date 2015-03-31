@@ -1,4 +1,3 @@
-
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -22,12 +21,29 @@ public class CorpusReader {
     private HashMap<String, Integer> ngrams;
     private Set<String> vocabulary;
     private ArrayList<Integer> freqCount = new ArrayList();
+    //private ArrayList<IntPair> consecZeroes = new ArrayList();  IntPair for use in SGT
+
+    /* 
+    // Class used to keep track of pairs of Ints. This was meant to be used 
+    // in the Simple Good Turing Implementation to keep track of series of
+    // zeroes
+    class IntPair {
+        final int x;
+        final int y;
+
+        IntPair(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+      }
+    */
+    private Set<String> testVocabulary = new HashSet<String>();
+    
 
     public CorpusReader() throws IOException {
         readNGrams();
         readVocabulary();
         createSmoothedCount(ngrams);
-        System.out.println("then=" +getSmoothedCount("then"));
     }
 
     /**
@@ -108,25 +124,12 @@ public class CorpusReader {
         return vocabulary.contains(word);
     }
 
-//    private void createSmoothedCount(HashMap<String, Integer> nGrams) {
-//        Integer count = 0;
-//        Object[] smoothNGrams = nGrams.entrySet().toArray();
-//        Arrays.sort(smoothNGrams, new Comparator() {
-//            public int compare(Object s1, Object s2) {
-//                return ((Map.Entry<String, Integer>) s1).getValue().compareTo(
-//                        ((Map.Entry<String, Integer>) s2).getValue());
-//            }
-//        });
-//        
-//        
-//        for (Object e : smoothNGrams) {
-//            while(((Map.Entry<String, Integer>) e).getValue() == 1){
-//                count++;
-//            }
-//            System.out.println(((Map.Entry<String, Integer>) e).getValue());
-//            
-//        }
-//    }
+    /**
+     * Creates an ArrayList (@freqCount) in which freqCount[r] holds
+     * the amount of words which appear r times in the hashmap nGrams
+     * 
+     * @param nGrams 
+     */
     private void createSmoothedCount(HashMap<String, Integer> nGrams) {
         for (int i = 0; i < 100000; i++) {
             freqCount.add(0);
@@ -138,6 +141,26 @@ public class CorpusReader {
                 freqCount.set(freq, 1);
             }
         }
+       
+        
+        /**
+         * Code intended to look for series of zeroes to be used in 
+         * Simple Good Turing
+         * 
+        boolean busy = false;
+        int q = 0,t = 0;
+        for (int i = 0; i < freqCount.size(); i++) {
+            if(freqCount.get(i) == 0 && !busy){
+                busy = true;
+                q = i;
+            } else if (freqCount.get(i) != 0 && busy){
+                t = i;
+                busy = false;
+                if(t-q != 1){
+                    consecZeroes.add(new IntPair(q,t));
+                }
+            } 
+        }*/
     }
 
     public double getSmoothedCount(String nGram) {
@@ -166,5 +189,5 @@ public class CorpusReader {
         }
         return count;
     }
-
+    
 }
