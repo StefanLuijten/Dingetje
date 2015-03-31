@@ -8,8 +8,10 @@ public class SpellCorrector {
 
     final private CorpusReader cr;
     final private ConfusionMatrixReader cmr;
-    // FINAL representing that we think that 80% of the words are typed correctly.
-    final private double NO_ERROR = 0.80;
+    // FINAL for finetuning.
+    final private double LAMBDA = 2.0;
+    // FINAL representing that we think that 95% of the words are typed correctly.
+    final private double NO_ERROR = 0.95;
     final char[] ALPHABET = "abcdefghijklmnopqrstuvwxyz'".toCharArray();
 
     public SpellCorrector(CorpusReader cr, ConfusionMatrixReader cmr) {
@@ -49,7 +51,7 @@ public class SpellCorrector {
 
                     // calculate the probability that this is the right word using the levhenstein distance max 1 with the confision matrix
                     // the two metrics above and the smoothed count for the unigram.
-                    chance = calculateChannelModelProbability(candidate, words[i]) * conditProbBefore * conditProbAfter * cr.getSmoothedCount(candidate);
+                    chance = calculateChannelModelProbability(candidate, words[i]) * Math.max(conditProbAfter , conditProbBefore)* cr.getSmoothedCount(candidate)/LAMBDA;
 
                     // last word which checks only the bigram with the word before
                 } else if (i == words.length - 1) {
@@ -57,14 +59,14 @@ public class SpellCorrector {
                     double lastOccursBefore = cr.getSmoothedCount(words[i - 1]);
                     double conditProbBefore = bothOccurBefore / lastOccursBefore;
 
-                    chance = calculateChannelModelProbability(candidate, words[i]) * conditProbBefore * cr.getSmoothedCount(candidate);
+                    chance = calculateChannelModelProbability(candidate, words[i]) * conditProbBefore * cr.getSmoothedCount(candidate) /LAMBDA;
 
                     // first word which checks only the bigram with the word after it.
                 } else {
                     double bothOccur = cr.getSmoothedCount(candidate + " " + words[i + 1]);
                     double lastOccurs = cr.getSmoothedCount(candidate);
                     double conditProb = bothOccur / lastOccurs;
-                    chance = calculateChannelModelProbability(candidate, words[i]) * conditProb * cr.getSmoothedCount(candidate);
+                    chance = calculateChannelModelProbability(candidate, words[i]) * conditProb * cr.getSmoothedCount(candidate) /LAMBDA;
                 }
                 // put candidates with the probability into a hashmap
                 wordChance.put(candidate, chance);
@@ -313,10 +315,11 @@ public class SpellCorrector {
     }
 
     /**
-     * Gets all candidate words that can be found using insertion. Using
-     * insertion of the whole ALPHABET array before and after each character.
+     * Gets all candidate words that can be found using transposition. Using
+     * transposition of all adjacent character.
+     *
      * @param word
-     * @return
+     * @return all candidates.
      */
     private HashSet<String> getCandidateWordsTransposition(String word) {
         HashSet<String> ListOfWordsTransposition = new HashSet<String>();
@@ -326,7 +329,7 @@ public class SpellCorrector {
         // for all characters
         for (int i = 0; i < charArray.length - 1; i++) {
             char original = charArray[i];
-            // transpose with the n other chars in the word including the char itself.
+            // transpose with the next one char in the word including the char itself.
             for (int k = 1; k < 2; k++) {
                 // clone the original word array;
                 result = charArray.clone();
@@ -340,6 +343,12 @@ public class SpellCorrector {
         return ListOfWordsTransposition;
     }
 
+    /**
+     * Gets all candidate words that can be found using substitution. Substitution is done on
+     * all chars with character of the ALPHABET variable.
+     * @param word
+     * @return all candidates.
+     */
     private HashSet<String> getCandidateWordsSubstitution(String word) {
         HashSet<String> ListOfWordsSubstitution = new HashSet<String>();
         /*
