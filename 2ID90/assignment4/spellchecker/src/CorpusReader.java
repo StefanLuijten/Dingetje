@@ -19,10 +19,14 @@ public class CorpusReader {
     private HashMap<String, Integer> ngrams;
     private Set<String> vocabulary;
     private ArrayList<Integer> freqCount = new ArrayList();
-    //private ArrayList<IntPair> consecZeroes = new ArrayList();
+    private ArrayList<IntPair> consecZeroes = new ArrayList();
 
-    /* 
+    //IntPair for use in SGT
+    // Class used to keep track of pairs of Ints. This was meant to be used 
+    // in the Simple Good Turing Implementation to keep track of series of
+    // zeroes
     class IntPair {
+
         final int x;
         final int y;
 
@@ -30,15 +34,14 @@ public class CorpusReader {
             this.x = x;
             this.y = y;
         }
-      }
-    */
+    }
     private Set<String> testVocabulary = new HashSet<String>();
-    
 
     public CorpusReader() throws IOException {
         readNGrams();
         readVocabulary();
         createSmoothedCount(ngrams);
+        findZeroes();
     }
 
     /**
@@ -119,6 +122,12 @@ public class CorpusReader {
         return vocabulary.contains(word);
     }
 
+    /**
+     * Creates an ArrayList (@freqCount) in which freqCount[r] holds the amount
+     * of words which appear r times in the hashmap nGrams
+     *
+     * @param nGrams
+     */
     private void createSmoothedCount(HashMap<String, Integer> nGrams) {
         for (int i = 0; i < 100000; i++) {
             freqCount.add(0);
@@ -130,21 +139,34 @@ public class CorpusReader {
                 freqCount.set(freq, 1);
             }
         }
-        /**
+    }
+
+    /**
+     * Code intended to look for series of zeroes to be used in Simple Good
+     * Turing
+     */
+    private void findZeroes() {
         boolean busy = false;
-        int q = 0,t = 0;
-        for (int i = 0; i < freqCount.size(); i++) {
-            if(freqCount.get(i) == 0 && !busy){
+        int q = 0, t = 0;
+        for (int i = 1; i < freqCount.size(); i++) {
+            if (freqCount.get(i) == 0 && !busy) {
                 busy = true;
                 q = i;
-            } else if (freqCount.get(i) != 0 && busy){
+            } else if (freqCount.get(i) != 0 && busy) {
                 t = i;
                 busy = false;
-                if(t-q != 1){
-                    consecZeroes.add(new IntPair(q,t));
+                if (t - q != 1) {
+                    consecZeroes.add(new IntPair(q, t));
+                    System.out.println("Check: q:"+q+", t:"+t);
                 }
-            } 
-        }*/
+            } else if (i == freqCount.size() - 1) {
+                t = q + (consecZeroes.get(consecZeroes.size() - 1).y - consecZeroes.get(consecZeroes.size() - 1).x);
+                if (t - q != 1) {
+                    consecZeroes.add(new IntPair(q, t));
+                    System.out.println("Check: q:"+q+", t:"+t);
+                }
+            }
+        }
     }
 
     public double getSmoothedCount(String nGram) {
@@ -155,25 +177,39 @@ public class CorpusReader {
         double smoothedCount = 0.0;
         if (ngrams.containsKey(nGram)) {
             int freq = ngrams.get(nGram);
-            
-            System.out.println("freq " + nGram + ": " + freq);
-            smoothedCount = (((double) freq + 1) * ((double) freqCount.get(freq + 1)) / ((double) freqCount.get(freq)));
+            double q = 0, t = 0;
+            if (freq >= 0.020 * freqCount.size()) {
+                for (IntPair consec : consecZeroes) {
+                    System.out.println("Check: q:"+consec.x+", t:"+consec.y);
+                    if (q == 0 || t == 0) {
+                        if (freq == consec.y) {
+                            q = consec.x - 1;
+                        } else if (freq == consec.x - 1) {
+                            t = consec.y;
+                        }
+                    }
+                }
+                smoothedCount = (freqCount.get(freq) / (0.5 * (t - q)));
+            } else {
+                smoothedCount = (((double) freq + 1) * ((double) freqCount.get(freq + 1)) / ((double) freqCount.get(freq)));
+            }
         } else {
             smoothedCount = ((double) freqCount.get(1) / (double) ngrams.size());
         }
+
         return smoothedCount;
     }
 
     public Integer retrieveSubStringVocabulary(String subString) {
         int count = 0;
         Pattern pattern = Pattern.compile(subString);
-        for(String s: testVocabulary){
+        for (String s : testVocabulary) {
             Matcher matcher = pattern.matcher(s);
-            while(matcher.find()) {
+            while (matcher.find()) {
                 count++;
             }
         }
         return count;
     }
-    
+
 }
