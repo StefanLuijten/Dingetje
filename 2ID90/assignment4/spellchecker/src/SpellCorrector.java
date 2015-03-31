@@ -32,7 +32,7 @@ public class SpellCorrector {
             // for all candidates calculate change
             for (String candidate : candidates) {
                 double chance = calculateChannelModelProbability(candidate, w) * cr.getSmoothedCount(candidate);
-                System.out.println("SmootehdCount:"+ cr.getSmoothedCount(candidate));
+                System.out.println("SmootehdCount:"+cr.getSmoothedCount(candidate));
                 wordChance.put(candidate, chance);
             }
               System.out.println("wordChance:"+ wordChance.toString());

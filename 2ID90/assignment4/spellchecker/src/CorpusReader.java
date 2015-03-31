@@ -27,6 +27,7 @@ public class CorpusReader {
         readNGrams();
         readVocabulary();
         createSmoothedCount(ngrams);
+        System.out.println("then=" +getSmoothedCount("then"));
     }
 
     /**
